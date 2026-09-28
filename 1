@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Western Trail</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            image-rendering: pixelated;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #120c08;
+            color: #2b1d0f;
+            font-family: 'VT323', monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            width: 960px;
+            height: 640px;
+            background-color: #e8d8b0;
+            border: 6px solid #2b1d0f;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, .pixel-font {
+            font-family: 'Press Start 2P', monospace;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin: 0 0 10px 0;
+        }
+
+        p, button, li, input {
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            line-height: 1.2;
+        }
+
+        .btn {
+            background-color: #8c5d3b;
+            color: #f7eed8;
+            border: 4px solid #2b1d0f;
+            padding: 8px 14px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 3px 3px 0px #2b1d0f;
+            transition: all 0.1s ease;
+            margin: 3px;
+            display: inline-block;
+        }
+
+        .btn:hover:not(.btn-disabled) {
+            background-color: #b87b4e;
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px #2b1d0f;
+        }
+
+        .btn:active:not(.btn-disabled) {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px #2b1d0f;
+        }
+
+        .btn-disabled {
+            background-color: #615246 !important;
+            color: #8c7f74 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+            opacity: 0.6;
+        }
+
+        #hud {
+            height: 50px;
+            background-color: #2b1d0f;
+            color: #e8d8b0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 4px solid #1a1008;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            z-index: 10;
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hud-label {
+            color: #b87b4e;
+        }
+
+        #canvas-wrapper {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background-color: #d4a86a;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #control-panel {
+            height: 190px;
+            background-color: #3b2818;
+            border-top: 4px solid #2b1d0f;
+            padding: 10px;
+            color: #e8d8b0;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .panel-box {
+            background-color: #2b1d0f;
+            border: 3px solid #543d2b;
+            padding: 8px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #event-log {
+            background-color: #1a1008;
+            border: 2px solid #8c5d3b;
+            color: #dfc89d;
+            padding: 6px 10px;
+            font-size: 16px;
+            height: 48px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #e8d8b0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(18, 12, 8, 0.85);
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-card {
+            background-color: #e8d8b0;
+            border: 6px solid #2b1d0f;
+            width: 85%;
+            max-width: 720px;
+            max-height: 85%;
+            padding: 20px;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .knowledge-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .topic-card {
+            background-color: #c9b082;
+            border: 3px solid #2b1d0f;
+            padding: 8px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            line-height: 1.3;
+        }
+
+        .topic-card:hover {
+            background-color: #dfc89d;
+        }
+
+        .topic-card.completed {
+            background-color: #5c8043;
+            color: #ffffff;
+        }
+
+        .store-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background-color: #d4c29a;
+            border: 3px solid #2b1d0f;
+        }
+
+        .store-table th, .store-table td {
+            border: 2px solid #2b1d0f;
+            padding: 6px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .store-table th {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            background-color: #8c5d3b;
+            color: #f7eed8;
+        }
+
+        .minigame-hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(43, 29, 15, 0.9);
+            border: 3px solid #e8d8b0;
+            color: #e8d8b0;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            z-index: 15;
+        }
+
+        .store-hint {
+            font-size: 14px;
+            color: #543d2b;
+            text-align: left;
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+
+    <!-- TOP HUD -->
+    <div id="hud">
+        <div class="hud-item"><span class="hud-label">LOCATION:</span> <span id="hud-loc">San Antonio</span></div>
+        <div class="hud-item"><span class="hud-label">DAY:</span> <span id="hud-day">1</span></div>
+        <div class="hud-item"><span class="hud-label">CATTLE:</span> <span id="hud-cattle">2000</span></div>
+        <div class="hud-item"><span class="hud-label">WEIGHT:</span> <span id="hud-weight">850</span> lbs</div>
+        <div class="hud-item"><span class="hud-label">CREW:</span> <span id="hud-crew">0</span></div>
+        <div class="hud-item"><span class="hud-label">FOOD:</span> <span id="hud-food">0</span> lbs</div>
+        <div class="hud-item"><span class="hud-label">CASH:</span> $<span id="hud-cash">3500</span></div>
+    </div>
+
+    <!-- MAIN CANVAS VIEWPORT -->
+    <div id="canvas-wrapper">
+        <canvas id="gameCanvas" width="960" height="400"></canvas>
+
+        <div id="minigame-hud" class="minigame-hud hidden">
+            <span id="mg-title">HAZARD ACTIVE</span>
+            <span id="mg-status">PROGRESS: 0%</span>
+            <span id="mg-timer">TIME: 0s</span>
+        </div>
+    </div>
+
+    <!-- BOTTOM CONTROL PANEL -->
+    <div id="control-panel">
+        <div class="panel-box" style="flex: 1.2;">
+            <span class="pixel-font" style="font-size: 10px; color: #b87b4e;">TRAIL MARCH PACE</span>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <button class="btn" onclick="setPace(8)">8 mi/day (Slow)</button>
+                <button class="btn" onclick="setPace(12)">12 mi/day (Normal)</button>
+                <button class="btn" onclick="setPace(18)">18 mi/day (Fast)</button>
+            </div>
+            <p id="pace-desc" style="font-size: 15px; margin: 4px 0 0 0;">Normal pace preserves steer weight and balances stamina.</p>
+        </div>
+
+        <div class="panel-box" style="flex: 1.8;">
+            <span class="pixel-font" style="font-size: 10px; color: #b87b4e;">TRAIL ACTIONS & OUTCOMES</span>
+            <div id="event-log">Log: Select March or Rest to advance the trail drive.</div>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <button class="btn" style="flex: 1;" onclick="advanceDay()">March One Day (Gamble)</button>
+                <button class="btn" style="flex: 1; background-color: #4a6b32;" onclick="restHerd()">Rest & Graze (Gamble)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TITLE SCREEN -->
+    <div id="title-screen" class="screen" style="justify-content: center;">
+        <h1 style="font-size: 28px; color: #8c5d3b; text-shadow: 3px 3px 0 #2b1d0f;">DUST & GOLD</h1>
+        <h2 style="font-size: 13px; color: #543d2b; margin-bottom: 20px;">THE GREAT WESTERN TRAIL (1866–1886)</h2>
+        <p style="max-width: 620px; margin-bottom: 25px;">Guide 2,000 Texas Longhorns north along the Chisholm Trail to Dodge City. Outfit your trail crew, buy working horses, manage rations, and risk dynamic pasture gambles!</p>
+        <div>
+            <button class="btn" onclick="startGame()">Start New Drive</button>
+        </div>
+    </div>
+
+    <!-- OUTFITTING & STORE SCREEN -->
+    <div id="outfit-screen" class="screen hidden">
+        <h2 style="font-size: 16px; color: #8c5d3b;">SAN ANTONIO OUTFITTING & GENERAL STORE</h2>
+        
+        <div style="width: 100%; max-width: 860px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span class="pixel-font" style="font-size: 11px; color: #2b1d0f;">1. TRAIL KNOWLEDGE MASTERY (REQUIRED)</span>
+        </div>
+        <div class="knowledge-grid" id="knowledge-grid"></div>
+        <div style="margin: 4px 0 10px 0; text-align: left; width: 100%; max-width: 860px;">
+            <span class="pixel-font" id="mastery-tracker" style="font-size: 9px; color: #8c5d3b;">MASTERED: 0 / 10 TOPICS</span>
+        </div>
+
+        <div style="width: 100%; max-width: 860px; background-color: #c9b082; border: 4px solid #2b1d0f; padding: 10px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="pixel-font" style="font-size: 10px; color: #2b1d0f;">2. OUTFIT CREW & SUPPLIES</span>
+                <span id="store-lock-msg" class="pixel-font" style="font-size: 8px; color: #8c2b2b;">[LOCKED: COMPLETE ALL 10 QUIZZES FIRST]</span>
+            </div>
+            
+            <table class="store-table">
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>PRICE</th>
+                        <th>TRAIL SUGGESTION</th>
+                        <th>QUANTITY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Trail Crew</strong></td>
+                        <td>$50 / person</td>
+                        <td class="store-hint">Need 10–12 drovers (point, swing, drag) for 2,000 head.</td>
+                        <td>
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('crew', -1)">-</button>
+                            <span id="store-crew" style="font-weight: bold; padding: 0 6px;">0</span>
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('crew', 1)">+</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Remuda Horses</strong></td>
+                        <td>$30 / horse</td>
+                        <td class="store-hint">Need 6–8 horses per cowboy (~60–80 total) for daily rotation.</td>
+                        <td>
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('horses', -5)">-5</button>
+                            <span id="store-horses" style="font-weight: bold; padding: 0 6px;">0</span>
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('horses', 5)">+5</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rations (Food)</strong></td>
+                        <td>$0.25 / lb</td>
+                        <td class="store-hint">3 lbs/person/day for ~60 days (~1,800–2,000 lbs total).</td>
+                        <td>
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('food', -100)">-100</button>
+                            <span id="store-food" style="font-weight: bold; padding: 0 6px;">0</span> lbs
+                            <button class="btn store-btn btn-disabled" onclick="adjustSupply('food', 100)">+100</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Press Start 2P', monospace; font-size: 9px;">
+                <span>REMAINING BUDGET: $<span id="store-cash">3500</span></span>
+                <span>TOTAL SPENT: $<span id="store-spent">0</span></span>
+            </div>
+        </div>
+
+        <div style="width: 100%; max-width: 860px; display: flex; justify-content: flex-end;">
+            <button id="start-drive-btn" class="btn btn-disabled" onclick="finishOutfitting()">Begin Cattle Drive →</button>
+        </div>
+    </div>
+
+    <!-- GENERAL MODAL BACKDROP -->
+    <div id="modal-overlay" class="modal-backdrop hidden">
+        <div class="modal-card" id="modal-card"></div>
+    </div>
+
+    <!-- IN-GAME NOTIFICATION OVERLAY -->
+    <div id="notification-overlay" class="modal-backdrop hidden" style="z-index: 60;">
+        <div class="modal-card" style="max-width: 550px; text-align: center; justify-content: center;">
+            <h2 id="notif-title" style="font-size: 16px; color: #8c5d3b;">NOTICE</h2>
+            <p id="notif-message" style="font-size: 20px; margin: 15px 0; color: #2b1d0f; text-align: left; line-height: 1.3;"></p>
+            <div>
+                <button class="btn" onclick="closeNotification()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STARVATION / FAILURE DEATH SCREEN -->
+    <div id="death-screen" class="screen hidden" style="justify-content: center; background-color: #2b1d0f; color: #e8d8b0;">
+        <h1 style="font-size: 24px; color: #d93838;">DRIVE FAILED: STARVATION</h1>
+        <h3 style="color: #b87b4e; font-size: 12px; margin-bottom: 20px;">CREW & HERD PERISHED ON THE TRAIL</h3>
+        
+        <div style="background-color: #1a1008; border: 4px solid #d93838; padding: 20px; text-align: left; width: 100%; max-width: 650px; margin-bottom: 20px;">
+            <p style="font-size: 18px; line-height: 1.4; color: #e8d8b0;">
+                <strong>HISTORICAL REALITY OF TRAIL STARVATION:</strong><br><br>
+                Running out of food on the trail was catastrophic. Cowboys and vaqueros relied on chuckwagons for daily rations of salt pork, beans, and hardtack. When supplies ran dry due to river floods or spoiled stores, drovers suffered extreme physical weakness.
+            </p>
+        </div>
+
+        <div>
+            <button class="btn" style="background-color: #5c8043;" onclick="restartGame()">Try Drive Again (Keep Quiz Mastery)</button>
+        </div>
+    </div>
+
+    <!-- RAILHEAD LEDGER SCREEN -->
+    <div id="ledger-screen" class="screen hidden" style="justify-content: center;">
+        <h1 style="font-size: 22px; color: #8c5d3b;">RAILHEAD MARKET LEDGER</h1>
+        <h3 id="ledger-location" style="color: #543d2b; font-size: 12px;">DODGE CITY, KANSAS</h3>
+        <div style="background-color: #c9b082; border: 4px solid #2b1d0f; padding: 20px; text-align: left; width: 100%; max-width: 600px; margin: 15px 0;">
+            <p id="ledger-stats">Head Delivered: 0<br>Average Steer Weight: 0 lbs<br>Market Price: $0.04/lb</p>
+            <hr style="border-color: #2b1d0f;">
+            <p id="ledger-financials" style="font-weight: bold; font-size: 24px;">GROSS REVENUE: $0</p>
+        </div>
+        <button class="btn" onclick="restartGame()">Play Again (Keep Quiz Mastery)</button>
+    </div>
+
+</div>
+
+<script>
+// NOTIFICATION SYSTEM
+let pendingNotifCallback = null;
+
+function showNotice(title, message, callback = null) {
+    document.getElementById('notif-title').innerText = title;
+    document.getElementById('notif-message').innerHTML = message;
+    document.getElementById('notification-overlay').classList.remove('hidden');
+    pendingNotifCallback = callback;
+}
+
+function closeNotification() {
+    document.getElementById('notification-overlay').classList.add('hidden');
+    if (pendingNotifCallback) {
+        const cb = pendingNotifCallback;
+        pendingNotifCallback = null;
+        cb();
+    }
+}
+
+function logEvent(msg) {
+    document.getElementById('event-log').innerHTML = msg;
+}
+
+// TRACK FIRST-TIME VICTORIES FOR HISTORICAL CONTEXT
+const minigameFirstWins = {
+    STAMPEDE: false,
+    NIGHTWATCH: false,
+    RIVER: false
+};
+
+const HISTORICAL_EXPLANATIONS = {
+    STAMPEDE: {
+        winFirst: "<strong>HISTORICAL FACT: MILLING THE HERD</strong><br><br>You turned the lead cattle! Drovers forced leaders into a tight circle ('milling') until exhaustion calmed them down.",
+        failure: "<strong>HISTORICAL CONTEXT: STAMPEDES</strong><br><br>Uncontrolled cattle scattered across miles, breaking legs and burning off weight."
+    },
+    NIGHTWATCH: {
+        winFirst: "<strong>HISTORICAL FACT: CATTLE LULLABIES</strong><br><br>Night shifts sang quiet songs to reassure longhorns that predators weren't sneaking up.",
+        failure: "<strong>HISTORICAL CONTEXT: NIGHT WATCH DANGERS</strong><br><br>A single startled steer could trigger a domino effect panic."
+    },
+    RIVER: {
+        winFirst: "<strong>HISTORICAL FACT: RIVER CROSSINGS</strong><br><br>You crossed safely! River crossings were among the most dangerous hazards.",
+        failure: "<strong>HISTORICAL CONTEXT: QUICKSAND</strong><br><br>Silt riverbeds contained quicksand patches where heavy longhorns sank."
+    }
+};
+
+// KEYBOARD POLLING
+const keysPressed = {};
+
+window.addEventListener('keydown', (e) => {
+    keysPressed[e.key.toLowerCase()] = true;
+    sound.init();
+
+    if (e.code === 'Space') {
+        if (gameState.mode === 'MINIGAME' && gameState.activeMinigame === 'NIGHTWATCH') {
+            handleNightwatchPress();
+        } else if (gameState.mode === 'MINIGAME' && gameState.activeMinigame === 'RIVER' && mgState.trapped) {
+            mgState.mashProgress += 15;
+            sound.playTone(220, 0.05, 'square');
+        }
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    keysPressed[e.key.toLowerCase()] = false;
+});
+
+let animationFrameId = null;
+let minigameIntervalId = null;
+
+const gameState = {
+    mode: 'TITLE',
+    day: 1,
+    location: 'San Antonio, TX',
+    distanceTraveled: 0,
+    totalDistance: 700,
+    cattle: 2000,
+    avgWeight: 850,
+    startingBudget: 3500,
+    budget: 3500,
+    totalSpent: 0,
+    crew: 0,
+    horses: 0,
+    food: 0,
+    daysWithoutFood: 0,
+    pace: 12,
+    factsMastered: new Set(),
+    activeMinigame: null,
+    minigameTimer: 0,
+    riverTriggered: false
+};
+
+const HISTORICAL_FACTS = [
+    {
+        id: 'crews', title: '1. Multi-Racial Trail Crews',
+        fact: 'Over one-third of all drovers on the Great Western Trail were Black cowboys or Hispanic Vaqueros.',
+        questions: [{ q: "What proportion of Western trail drovers were Black or Hispanic Vaqueros?", a: ["Over 1/3 (35%+)", "Less than 5%", "100%", "Only 2%"], correct: 0 }]
+    },
+    {
+        id: 'hierarchy', title: '2. Labor Hierarchy',
+        fact: 'Cattle drives maintained a strict division of labor: Trail Boss, Cook, Wrangler, Point, Swing, and Drag riders.',
+        questions: [{ q: "Which position rode at the dusty rear pushing slow steers?", a: ["Drag Riders", "Trail Boss", "Point Riders", "Wrangler"], correct: 0 }]
+    },
+    {
+        id: 'remuda', title: '3. The Remuda System',
+        fact: 'Each cowboy required 6 to 10 horses for a 700-mile drive, rotated daily to prevent exhaustion.',
+        questions: [{ q: "How many horses did a cowboy typically need for a drive?", a: ["6 to 10 horses", "1 horse", "20 horses", "None"], correct: 0 }]
+    },
+    {
+        id: 'nightwatch', title: '4. Night Watches & Lullabies',
+        fact: 'Cowboys took 2-hour night shifts circling the herd, singing lullabies to soothe longhorns.',
+        questions: [{ q: "Why did night riders sing quiet songs while circling sleeping cattle?", a: ["To soothe longhorns and prevent panic", "To practice singing", "To scare wolves", "To stay awake"], correct: 0 }]
+    },
+    {
+        id: 'stampede', title: '5. Stampedes & Weight Loss',
+        fact: 'A stampede could burn 20 to 30 pounds off a steer in hours! Drovers milled lead steers in circles.',
+        questions: [{ q: "How do drovers stop a panicked cattle stampede?", a: ["Turn lead cattle into a tightening circle", "Shoot into the air", "Build a fence", "Run away"], correct: 0 }]
+    },
+    {
+        id: 'river', title: '6. Lethal River Crossings',
+        fact: 'River crossings were lethal hazards due to quicksand and sudden flash floods.',
+        questions: [{ q: "What hidden hazard along riverbeds could trap heavy steers?", a: ["Quicksand", "Avalanches", "Cactuses", "Highways"], correct: 0 }]
+    },
+    {
+        id: 'fever', title: '7. Texas Fever & Quarantines',
+        fact: 'Texas Longhorns carried ticks infected with Texas Fever, leading Kansas to enforce quarantine laws.',
+        questions: [{ q: "What caused Kansas farmers to set up quarantines?", a: ["Ticks carried by Longhorns that killed northern cattle", "Loud noise", "Crop damage", "Taxes"], correct: 0 }]
+    },
+    {
+        id: 'chuckwagon', title: '8. The Chuckwagon',
+        fact: 'Invented by Charles Goodnight in 1866, the chuckwagon was a mobile kitchen and trail HQ.',
+        questions: [{ q: "Who invented the classic Western chuckwagon in 1866?", a: ["Charles Goodnight", "Wyatt Earp", "Jesse James", "Buffalo Bill"], correct: 0 }]
+    },
+    {
+        id: 'tolls', title: '9. Sovereign Indigenous Tolls',
+        fact: 'Crossing Native American sovereign nations required paying legal grazing taxes (~10 cents per head).',
+        questions: [{ q: "How did trail bosses legally navigate passage through Native Nations?", a: ["By paying legal transit fees or cattle trades", "By fighting", "By sneaking past", "By ignoring laws"], correct: 0 }]
+    },
+    {
+        id: 'economics', title: '10. Weight Loss Economics',
+        fact: 'Driving cattle faster than 15 mi/day burned fat and severely lowered market sale value.',
+        questions: [{ q: "Why was driving cattle faster than 15 miles a day financially unwise?", a: ["Steers burn weight, reducing sales value", "Horses tire out", "Railroads charge more", "Cattle run backward"], correct: 0 }]
+    }
+];
+
+let activeQuizState = { factItem: null, questionIndex: 0 };
+
+class SoundEngine {
+    constructor() { this.ctx = null; }
+    init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    playTone(freq, duration, type = 'sine') {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + duration);
+    }
+    playSuccess() {
+        this.playTone(440, 0.1);
+        setTimeout(() => this.playTone(554.37, 0.1), 100);
+        setTimeout(() => this.playTone(659.25, 0.2), 200);
+    }
+    playError() {
+        this.playTone(180, 0.15, 'sawtooth');
+        setTimeout(() => this.playTone(130, 0.25, 'sawtooth'), 150);
+    }
+}
+const sound = new SoundEngine();
+
+function adjustSupply(type, amount) {
+    if (gameState.factsMastered.size < 10) return;
+    if (type === 'crew') gameState.crew = Math.max(0, gameState.crew + amount);
+    else if (type === 'horses') gameState.horses = Math.max(0, gameState.horses + amount);
+    else if (type === 'food') gameState.food = Math.max(0, gameState.food + amount);
+    updateStoreUI();
+}
+
+function updateStoreUI() {
+    const unlocked = gameState.factsMastered.size >= 10;
+    const storeLockMsg = document.getElementById('store-lock-msg');
+    const storeBtns = document.querySelectorAll('.store-btn');
+
+    if (unlocked) {
+        storeLockMsg.innerText = "[UNLOCKED: READY TO OUTFIT]";
+        storeLockMsg.style.color = "#5c8043";
+        storeBtns.forEach(btn => btn.classList.remove('btn-disabled'));
+    } else {
+        storeLockMsg.innerText = "[LOCKED: COMPLETE ALL 10 QUIZZES FIRST]";
+        storeLockMsg.style.color = "#8c2b2b";
+        storeBtns.forEach(btn => btn.classList.add('btn-disabled'));
+    }
+
+    const crewCost = gameState.crew * 50;
+    const horseCost = gameState.horses * 30;
+    const foodCost = gameState.food * 0.25;
+    
+    gameState.totalSpent = crewCost + horseCost + foodCost;
+    const remaining = gameState.startingBudget - gameState.totalSpent;
+
+    document.getElementById('store-crew').innerText = gameState.crew;
+    document.getElementById('store-horses').innerText = gameState.horses;
+    document.getElementById('store-food').innerText = gameState.food;
+    document.getElementById('store-cash').innerText = remaining;
+    document.getElementById('store-spent').innerText = gameState.totalSpent;
+
+    const startBtn = document.getElementById('start-drive-btn');
+    if (remaining < 0 || !unlocked || gameState.crew <= 0) {
+        if (remaining < 0) document.getElementById('store-cash').style.color = 'red';
+        else document.getElementById('store-cash').style.color = '#2b1d0f';
+        startBtn.classList.add('btn-disabled');
+    } else {
+        document.getElementById('store-cash').style.color = '#2b1d0f';
+        startBtn.classList.remove('btn-disabled');
+    }
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let trailStep = 0;
+
+function drawPixelCowboy(x, y, color = '#8c5d3b', scale = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = color;
+    ctx.fillRect(-10 * scale, -8 * scale, 20 * scale, 4 * scale);
+    ctx.fillRect(-5 * scale, -14 * scale, 10 * scale, 6 * scale);
+    ctx.fillStyle = '#e8c39e';
+    ctx.fillRect(-4 * scale, -4 * scale, 8 * scale, 5 * scale);
+    ctx.fillStyle = '#2b1d0f';
+    ctx.fillRect(-5 * scale, 1 * scale, 10 * scale, 8 * scale);
+    ctx.fillStyle = '#614124';
+    ctx.fillRect(-8 * scale, 6 * scale, 16 * scale, 8 * scale);
+
+    ctx.restore();
+}
+
+function drawScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (gameState.mode === 'MARCH' || gameState.mode === 'OUTFIT') {
+        ctx.fillStyle = '#d4a86a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#b88b4a';
+        ctx.fillRect(0, 160, canvas.width, 100);
+
+        ctx.fillStyle = '#7a8a40';
+        for (let i = 0; i < canvas.width; i += 80) {
+            ctx.fillRect((i + trailStep * 2) % canvas.width, 50, 6, 12);
+            ctx.fillRect((i + 30 + trailStep * 2) % canvas.width, 320, 8, 10);
+        }
+
+        ctx.fillStyle = '#6e3c1b';
+        for (let i = 0; i < 30; i++) {
+            let x = (220 + (i * 18) + (Math.sin(i + trailStep * 0.1) * 8)) % (canvas.width - 260);
+            let y = 170 + (i % 5) * 16;
+            ctx.fillRect(x + 120, y, 14, 10);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x + 120 - 2, y - 2, 4, 2);
+            ctx.fillRect(x + 120 + 12, y - 2, 4, 2);
+            ctx.fillStyle = '#6e3c1b';
+        }
+
+        const totalCrew = gameState.crew;
+        if (totalCrew > 0) {
+            let pointCount = Math.min(2, totalCrew);
+            for (let i = 0; i < pointCount; i++) {
+                drawPixelCowboy(680 + (i * 25), 180 + (i * 30), '#5c8043');
+            }
+
+            let remainingAfterPoint = totalCrew - pointCount;
+            let swingCount = Math.min(6, remainingAfterPoint);
+            for (let i = 0; i < swingCount; i++) {
+                let sideY = (i % 2 === 0) ? 130 : 270;
+                let posX = 300 + (Math.floor(i / 2) * 80);
+                drawPixelCowboy(posX, sideY, '#8c5d3b');
+            }
+
+            let dragCount = remainingAfterPoint - swingCount;
+            for (let i = 0; i < dragCount; i++) {
+                drawPixelCowboy(220 - (i * 20), 180 + ((i % 3) * 20), '#2b5d88');
+            }
+        }
+
+        trailStep++;
+    } else if (gameState.mode === 'MINIGAME') {
+        updateAndRenderMinigame();
+    }
+
+    animationFrameId = requestAnimationFrame(drawScene);
+}
+
+function renderKnowledgeGrid() {
+    const grid = document.getElementById('knowledge-grid');
+    grid.innerHTML = '';
+
+    HISTORICAL_FACTS.forEach((item) => {
+        const isMastered = gameState.factsMastered.has(item.id);
+        const card = document.createElement('div');
+        card.className = `topic-card ${isMastered ? 'completed' : ''}`;
+        card.innerHTML = `
+            <span>${item.title}</span>
+            <span>${isMastered ? '[✓ MASTERED]' : '[READ & QUIZ]'}</span>
+        `;
+        card.onclick = () => openFactReadingModal(item);
+        grid.appendChild(card);
+    });
+
+    document.getElementById('mastery-tracker').innerText = `MASTERED: ${gameState.factsMastered.size} / 10 TOPICS`;
+    updateStoreUI();
+}
+
+function openFactReadingModal(factItem) {
+    activeQuizState = { factItem: factItem };
+    const modal = document.getElementById('modal-overlay');
+    const card = document.getElementById('modal-card');
+    modal.classList.remove('hidden');
+
+    card.innerHTML = `
+        <h2 style="font-size: 16px; color: #8c5d3b;">${factItem.title}</h2>
+        <div style="background: #d4c29a; border: 3px solid #2b1d0f; padding: 15px; text-align: left;">
+            <p style="font-size: 20px; margin: 0; line-height: 1.3;">${factItem.fact}</p>
+        </div>
+        <div style="margin-top: 10px; text-align: center;">
+            <button class="btn" onclick="presentQuestion()">Take Knowledge Quiz →</button>
+        </div>
+    `;
+}
+
+function presentQuestion() {
+    const card = document.getElementById('modal-card');
+    const qData = activeQuizState.factItem.questions[0];
+
+    card.innerHTML = `
+        <h2 style="font-size: 14px; color: #8c5d3b;">${activeQuizState.factItem.title} (QUIZ)</h2>
+        <div style="text-align: left; margin-top: 5px;">
+            <p style="font-size: 20px; font-weight: bold; margin-bottom: 12px;">${qData.q}</p>
+            ${qData.a.map((opt, i) => `
+                <div style="background: #d4c29a; border: 2px solid #2b1d0f; padding: 10px; margin: 6px 0; cursor: pointer; font-size: 18px;" onclick="handleQuizAnswer(${i},${qData.correct})">${i + 1}.${opt}</div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function handleQuizAnswer(selectedIndex, correctIndex) {
+    if (selectedIndex === correctIndex) {
+        sound.playSuccess();
+        gameState.factsMastered.add(activeQuizState.factItem.id);
+        closeModal();
+        renderKnowledgeGrid();
+    } else {
+        sound.playError();
+        closeModal();
+        showNotice("INCORRECT ANSWER", "Review the trail historical fact and try again!", () => {
+            openFactReadingModal(activeQuizState.factItem);
+        });
+    }
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function finishOutfitting() {
+    if (gameState.startingBudget - gameState.totalSpent < 0) {
+        showNotice("BUDGET EXCEEDED", "You have overspent your budget! Reduce supplies before starting.");
+        return;
+    }
+    if (gameState.factsMastered.size < 10) {
+        showNotice("KNOWLEDGE REQUIRED", "Please complete all 10 historical topics before starting the drive!");
+        return;
+    }
+    if (gameState.crew <= 0) {
+        showNotice("CREW REQUIRED", "You must hire at least 1 cowboy to drive the cattle!");
+        return;
+    }
+
+    gameState.budget = gameState.startingBudget - gameState.totalSpent;
+    gameState.mode = 'MARCH';
+    document.getElementById('outfit-screen').classList.add('hidden');
+    updateHUD();
+}
+
+function setPace(miles) {
+    gameState.pace = miles;
+    const desc = document.getElementById('pace-desc');
+    if (miles === 8) desc.innerText = "Slow pace: Preserves cattle fat but burns more overall rations over time.";
+    if (miles === 12) desc.innerText = "Normal pace: Balanced progression without excess fatigue.";
+    if (miles === 18) desc.innerText = "Fast pace: Rapid travel speed, but higher risk of fatigue & stampedes!";
+}
+
+function updateHUD() {
+    document.getElementById('hud-loc').innerText = gameState.location;
+    document.getElementById('hud-day').innerText = gameState.day;
+    document.getElementById('hud-cattle').innerText = gameState.cattle;
+    document.getElementById('hud-weight').innerText = Math.round(gameState.avgWeight);
+    document.getElementById('hud-crew').innerText = gameState.crew;
+    document.getElementById('hud-food').innerText = Math.round(gameState.food);
+    document.getElementById('hud-cash').innerText = Math.round(gameState.budget);
+}
+
+function restHerd() {
+    gameState.day++;
+
+    const foodConsumed = gameState.crew * 3;
+    gameState.food -= foodConsumed;
+
+    if (gameState.food <= 0) {
+        gameState.food = 0;
+        gameState.daysWithoutFood++;
+        gameState.avgWeight -= 15;
+
+        if (gameState.daysWithoutFood >= 3) {
+            triggerStarvationDeath();
+            return;
+        } else {
+            showNotice("STARVATION WARNING", `No food available while resting! Starvation day ${gameState.daysWithoutFood}/3.`);
+            updateHUD();
+            return;
+        }
+    } else {
+        gameState.daysWithoutFood = 0;
+    }
+
+    const roll = Math.random();
+
+    if (roll < 0.40) {
+        const gain = Math.floor(Math.random() * 9) + 10;
+        gameState.avgWeight += gain;
+        sound.playSuccess();
+        logEvent(`🌾 <strong style="color: #7a8a40;">GREAT GRAZE!</strong> Found lush prairie clover! Steers gained <strong>+${gain} lbs</strong>.`);
+    } 
+    else if (roll < 0.75) {
+        const gain = Math.floor(Math.random() * 5) + 4;
+        gameState.avgWeight += gain;
+        logEvent(`🌿 <strong>QUIET PASTURE:</strong> Decent grazing ground. Steers gained <strong>+${gain} lbs</strong>.`);
+    } 
+    else if (roll < 0.90) {
+        const lostCattle = Math.floor(Math.random() * 8) + 5;
+        gameState.avgWeight = Math.max(500, gameState.avgWeight - 10);
+        gameState.cattle = Math.max(1, gameState.cattle - lostCattle);
+        sound.playError();
+        logEvent(`⚠️ <strong style="color: #d93838;">BAD WATER & LOCOWEED:</strong> Cattle fell ill! Steers lost <strong>-10 lbs</strong> and <strong>${lostCattle} died</strong>.`);
+    } 
+    else {
+        const baseLoss = Math.floor(Math.random() * 15) + 10;
+        const savedByCrew = Math.min(baseLoss - 2, Math.floor(gameState.crew * 0.8));
+        const finalLoss = Math.max(2, baseLoss - savedByCrew);
+        gameState.cattle = Math.max(1, gameState.cattle - finalLoss);
+        sound.playError();
+        logEvent(`🐺 <strong style="color: #d93838;">NIGHT RAID:</strong> Wolves/rustlers struck! Lost <strong>${finalLoss} cattle</strong> (Crew defended ${savedByCrew}).`);
+    }
+
+    updateHUD();
+}
+
+function advanceDay() {
+    gameState.day++;
+
+    const foodConsumed = gameState.crew * 3;
+    gameState.food -= foodConsumed;
+
+    if (gameState.food <= 0) {
+        gameState.food = 0;
+        gameState.daysWithoutFood++;
+        gameState.avgWeight -= 15;
+
+        if (gameState.daysWithoutFood >= 3) {
+            triggerStarvationDeath();
+            return;
+        } else {
+            showNotice(
+                "CRITICAL STARVATION WARNING", 
+                `Out of food for <strong>${gameState.daysWithoutFood} day(s)</strong>!<br><br>Cowboys are severely malnourished. If you go <strong>${3 - gameState.daysWithoutFood} more day(s)</strong> without food, your crew will collapse!`
+            );
+        }
+    } else {
+        gameState.daysWithoutFood = 0;
+    }
+
+    let distGained = gameState.pace;
+    let baseWeightLoss = (gameState.pace === 18) ? 8 : (gameState.pace === 8 ? 2 : 4);
+
+    const roll = Math.random();
+
+    if (roll < 0.45) {
+        gameState.distanceTraveled += distGained;
+        gameState.avgWeight -= baseWeightLoss;
+        logEvent(`🐎 <strong>SMOOTH MARCH:</strong> Covered <strong>${distGained} miles</strong> cleanly (-${baseWeightLoss} lbs fatigue).`);
+    } 
+    else if (roll < 0.75) {
+        const extraLoss = baseWeightLoss * 2;
+        gameState.distanceTraveled += distGained;
+        gameState.avgWeight -= extraLoss;
+        logEvent(`☀️ <strong style="color: #b87b4e;">HARSH HEATWAVE:</strong> Deep mud and heat strained steers (-${extraLoss} lbs fatigue).`);
+    } 
+    else if (roll < 0.90) {
+        const bonusDist = distGained + 5;
+        gameState.distanceTraveled += bonusDist;
+        gameState.avgWeight -= baseWeightLoss;
+        sound.playSuccess();
+        logEvent(`🧭 <strong style="color: #7a8a40;">SHORTCUT FOUND:</strong> Native scout guided a quick path! Covered <strong>${bonusDist} miles</strong>.`);
+    } 
+    else {
+        gameState.distanceTraveled += distGained;
+        gameState.avgWeight -= baseWeightLoss;
+        logEvent(`⚠️ <strong style="color: #d93838;">HAZARD ENCOUNTERED:</strong> Panic broke out on the trail!`);
+        promptMinigame(Math.random() < 0.5 ? 'STAMPEDE' : 'NIGHTWATCH');
+        updateHUD();
+        return;
+    }
+
+    if (gameState.distanceTraveled >= 200 && gameState.distanceTraveled < 350) gameState.location = 'Red River';
+    else if (gameState.distanceTraveled >= 350 && gameState.distanceTraveled < 550) gameState.location = 'Indian Territory';
+    else if (gameState.distanceTraveled >= 550) gameState.location = 'Kansas Border';
+
+    if (gameState.distanceTraveled >= 200 && !gameState.riverTriggered) {
+        gameState.riverTriggered = true;
+        promptMinigame('RIVER');
+        return;
+    }
+
+    if (gameState.distanceTraveled >= gameState.totalDistance) {
+        triggerEndGame();
+        return;
+    }
+
+    updateHUD();
+}
+
+function triggerStarvationDeath() {
+    sound.playError();
+    gameState.mode = 'END';
+    document.getElementById('death-screen').classList.remove('hidden');
+}
+
+function restartGame() {
+    const savedMastery = new Set(gameState.factsMastered);
+
+    gameState.mode = 'OUTFIT';
+    gameState.day = 1;
+    gameState.location = 'San Antonio, TX';
+    gameState.distanceTraveled = 0;
+    gameState.cattle = 2000;
+    gameState.avgWeight = 850;
+    gameState.startingBudget = 3500;
+    gameState.budget = 3500;
+    gameState.totalSpent = 0;
+    gameState.crew = 0;
+    gameState.horses = 0;
+    gameState.food = 0;
+    gameState.daysWithoutFood = 0;
+    gameState.pace = 12;
+    gameState.activeMinigame = null;
+    gameState.riverTriggered = false;
+
+    gameState.factsMastered = savedMastery;
+
+    document.getElementById('ledger-screen').classList.add('hidden');
+    document.getElementById('death-screen').classList.add('hidden');
+    document.getElementById('outfit-screen').classList.remove('hidden');
+
+    renderKnowledgeGrid();
+    updateStoreUI();
+    updateHUD();
+}
+
+let mgState = {};
+
+function promptMinigame(type) {
+    gameState.activeMinigame = type;
+    const modal = document.getElementById('modal-overlay');
+    const card = document.getElementById('modal-card');
+    modal.classList.remove('hidden');
+
+    let title = "", desc = "", controls = "";
+    if (type === 'STAMPEDE') {
+        title = "HAZARD: MIDNIGHT STAMPEDE!";
+        desc = "Cattle panic frequently! Your horse movement is slower—herd the steers quickly into the green target ring!";
+        controls = "CONTROLS: ARROW KEYS or WASD to nudge cattle into the circle.";
+    } else if (type === 'NIGHTWATCH') {
+        title = "HAZARD: NERVOUS HERD NIGHT WATCH";
+        desc = "Sing trail lullabies! Notes drift down musical tracks. Press SPACEBAR as notes cross the target line!";
+        controls = "CONTROLS: Press SPACEBAR when any note aligns with the vertical target line.";
+    } else if (type === 'RIVER') {
+        title = "HAZARD: RED RIVER CROSSING";
+        desc = "Beware! Camouflaged dark blue quicksand pools block the riverbed. Mash SPACEBAR rapidly if caught!";
+        controls = "CONTROLS: ARROW KEYS / WASD to swim north. Mash SPACEBAR if trapped.";
+    }
+
+    card.innerHTML = `
+        <h2 style="font-size: 16px; color: #8c5d3b;">${title}</h2>
+        <p style="font-size: 18px;">${desc}</p>
+        <div style="background-color: #2b1d0f; color: #e8d8b0; padding: 10px; font-family: 'Press Start 2P', monospace; font-size: 9px;">
+            ${controls}
+        </div>
+        <div style="margin-top: 12px;">
+            <button class="btn" onclick="startMinigame('${type}')">Play Mini-Game</button>
+        </div>
+    `;
+}
+
+function startMinigame(type) {
+    closeModal();
+    gameState.mode = 'MINIGAME';
+    gameState.minigameTimer = 0;
+    document.getElementById('minigame-hud').classList.remove('hidden');
+
+    if (type === 'STAMPEDE') {
+        gameState.minigameTimer = 30;
+        mgState = {
+            playerX: 60, playerY: 210, 
+            speed: 3.5,
+            targetCircle: { x: 480, y: 210, r: 120 },
+            holdProgress: 0,
+            lastTickTime: Date.now(),
+            cattle: Array.from({length: 16}, () => ({
+                x: 480 + (Math.random()*200 - 100),
+                y: 210 + (Math.random()*140 - 70),
+                vx: 0,
+                vy: 0,
+                panicked: false,
+                panicTimer: 0
+            }))
+        };
+    } else if (type === 'NIGHTWATCH') {
+        mgState = {
+            completion: 0,
+            lanes: [120, 180, 240, 300],
+            pitches: [440, 523, 587, 659],
+            notes: [
+                { x: 500, y: 120, pitch: 440 },
+                { x: 650, y: 240, pitch: 587 }, 
+                { x: 800, y: 180, pitch: 523 }, 
+                { x: 950, y: 300, pitch: 659 }
+            ],
+            targetX: 180,
+            spawnTimer: 0
+        };
+    } else if (type === 'RIVER') {
+        gameState.minigameTimer = 25;
+        mgState = { 
+            playerX: 480, playerY: 380, speed: 4.0, 
+            quicksand: [
+                { x: 150, y: 290, r: 42, vx: 2.2 },
+                { x: 480, y: 290, r: 45, vx: -2.8 },
+                { x: 800, y: 290, r: 42, vx: 2.0 },
+                { x: 280, y: 190, r: 46, vx: -3.2 },
+                { x: 650, y: 190, r: 44, vx: 2.6 },
+                { x: 180, y: 100, r: 40, vx: 2.5 },
+                { x: 500, y: 100, r: 48, vx: -2.9 },
+                { x: 820, y: 100, r: 42, vx: 2.3 }
+            ], 
+            trapped: false, mashProgress: 0 
+        };
+    }
+
+    if (minigameIntervalId) clearInterval(minigameIntervalId);
+    minigameIntervalId = setInterval(() => {
+        if (type !== 'NIGHTWATCH') {
+            gameState.minigameTimer--;
+            if (gameState.minigameTimer <= 0) {
+                if (type === 'STAMPEDE') endMinigame(mgState.holdProgress >= 100);
+                else if (type === 'RIVER') endMinigame(mgState.playerY <= 50);
+            }
+        } else {
+            gameState.minigameTimer++;
+        }
+    }, 1000);
+}
+
+function handleNightwatchPress() {
+    if (gameState.activeMinigame !== 'NIGHTWATCH') return;
+    
+    let hit = false;
+    for (let i = 0; i < mgState.notes.length; i++) {
+        let note = mgState.notes[i];
+        if (Math.abs(note.x - mgState.targetX) < 35) {
+            hit = true;
+            sound.playTone(note.pitch, 0.2, 'sine');
+            mgState.completion = Math.min(100, mgState.completion + 7.0);
+            mgState.notes.splice(i, 1);
+
+            if (mgState.completion >= 100) {
+                endMinigame(true);
+            }
+            break;
+        }
+    }
+    if (!hit) {
+        sound.playError();
+        mgState.completion = Math.max(0, mgState.completion - 3);
+        
+        let laneIdx = Math.floor(Math.random() * mgState.lanes.length);
+        mgState.notes.push({
+            x: canvas.width + 120,
+            y: mgState.lanes[laneIdx],
+            pitch: mgState.pitches[laneIdx]
+        });
+    }
+}
+
+function endMinigame(success) {
+    if (minigameIntervalId) clearInterval(minigameIntervalId);
+    document.getElementById('minigame-hud').classList.add('hidden');
+    const mgType = gameState.activeMinigame;
+    gameState.mode = 'MARCH';
+
+    if (success) {
+        sound.playSuccess();
+        if (!minigameFirstWins[mgType]) {
+            minigameFirstWins[mgType] = true;
+            showNotice("HAZARD CLEARED!", HISTORICAL_EXPLANATIONS[mgType].winFirst);
+        } else {
+            showNotice("HAZARD CLEARED", "Success! You expertly handled the trail hazard.");
+        }
+    } else {
+        sound.playError();
+        gameState.avgWeight -= 20;
+        showNotice("HAZARD FAILED", HISTORICAL_EXPLANATIONS[mgType].failure);
+    }
+    updateHUD();
+}
+
+function updateAndRenderMinigame() {
+    document.getElementById('mg-timer').innerText = `TIME: ${gameState.minigameTimer}s`;
+
+    if (gameState.activeMinigame === 'STAMPEDE') {
+        document.getElementById('mg-status').innerText = `HOLD METER: ${Math.round(mgState.holdProgress)}%`;
+
+        if (keysPressed['arrowleft'] || keysPressed['a']) mgState.playerX -= mgState.speed;
+        if (keysPressed['arrowright'] || keysPressed['d']) mgState.playerX += mgState.speed;
+        if (keysPressed['arrowup'] || keysPressed['w']) mgState.playerY -= mgState.speed;
+        if (keysPressed['arrowdown'] || keysPressed['s']) mgState.playerY += mgState.speed;
+
+        mgState.playerX = Math.max(20, Math.min(canvas.width - 20, mgState.playerX));
+        mgState.playerY = Math.max(20, Math.min(canvas.height - 20, mgState.playerY));
+
+        ctx.fillStyle = '#24170d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#5c8043';
+        ctx.lineWidth = 6;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.arc(mgState.targetCircle.x, mgState.targetCircle.y, mgState.targetCircle.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#5c8043';
+        ctx.font = '11px "Press Start 2P"';
+        ctx.fillText("KEEP ALL (+/- 3) CATTLE HERE", mgState.targetCircle.x - 135, mgState.targetCircle.y - mgState.targetCircle.r - 12);
+
+        let totalX = 0, totalY = 0;
+        mgState.cattle.forEach(c => { totalX += c.x; totalY += c.y; });
+        let herdCenterX = totalX / mgState.cattle.length;
+        let herdCenterY = totalY / mgState.cattle.length;
+
+        let insideCount = 0;
+
+        mgState.cattle.forEach((c, idx) => {
+            if (!c.panicked && Math.random() < 0.007) {
+                c.panicked = true;
+                c.panicTimer = 110 + Math.floor(Math.random() * 60);
+            }
+
+            if (c.panicked) {
+                c.panicTimer--;
+                if (c.panicTimer <= 0) c.panicked = false;
+
+                c.vx += (Math.random() - 0.5) * 2.5;
+                c.vy += (Math.random() - 0.5) * 2.5;
+
+                mgState.cattle.forEach((other, oIdx) => {
+                    if (idx !== oIdx && !other.panicked) {
+                        let odx = c.x - other.x;
+                        let ody = c.y - other.y;
+                        if (Math.hypot(odx, ody) < 35 && Math.random() < 0.08) {
+                            other.panicked = true;
+                            other.panicTimer = 70;
+                        }
+                    }
+                });
+            } else {
+                let dxCenter = herdCenterX - c.x;
+                let dyCenter = herdCenterY - c.y;
+                c.vx += dxCenter * 0.0025;
+                c.vy += dyCenter * 0.0025;
+            }
+
+            mgState.cattle.forEach((other, oIdx) => {
+                if (idx !== oIdx) {
+                    let odx = c.x - other.x;
+                    let ody = c.y - other.y;
+                    let odist = Math.hypot(odx, ody);
+                    if (odist < 22 && odist > 0) {
+                        c.vx += (odx / odist) * 0.25;
+                        c.vy += (ody / odist) * 0.25;
+                    }
+                }
+            });
+
+            let dxPlayer = c.x - mgState.playerX;
+            let dyPlayer = c.y - mgState.playerY;
+            let distPlayer = Math.hypot(dxPlayer, dyPlayer);
+
+            if (distPlayer < 100) {
+                let pushAngle = Math.atan2(dyPlayer, dxPlayer);
+                let force = (100 - distPlayer) * 0.035; 
+                c.vx += Math.cos(pushAngle) * force;
+                c.vy += Math.sin(pushAngle) * force;
+            }
+
+            c.vx *= 0.88;
+            c.vy *= 0.88;
+
+            c.x += c.vx;
+            c.y += c.vy;
+
+            c.x = Math.max(90, Math.min(canvas.width - 90, c.x));
+            c.y = Math.max(90, Math.min(canvas.height - 90, c.y));
+
+            let distTarget = Math.hypot(c.x - mgState.targetCircle.x, c.y - mgState.targetCircle.y);
+            if (distTarget <= mgState.targetCircle.r) {
+                insideCount++;
+            }
+
+            if (c.panicked) {
+                ctx.fillStyle = '#d93838';
+            } else if (distTarget <= mgState.targetCircle.r) {
+                ctx.fillStyle = '#7a8a40';
+            } else {
+                ctx.fillStyle = '#8c5d3b';
+            }
+
+            ctx.fillRect(c.x - 8, c.y - 6, 16, 12);
+        });
+
+        let currentTime = Date.now();
+        if (currentTime - mgState.lastTickTime >= 500) {
+            mgState.lastTickTime = currentTime;
+
+            const requiredCount = mgState.cattle.length - 3;
+            if (insideCount >= requiredCount) {
+                mgState.holdProgress = Math.min(100, mgState.holdProgress + 6);
+                sound.playTone(523, 0.05, 'sine');
+            } else {
+                mgState.holdProgress = Math.max(0, mgState.holdProgress - 8);
+            }
+
+            if (mgState.holdProgress >= 100) {
+                endMinigame(true);
+            }
+        }
+
+        drawPixelCowboy(mgState.playerX, mgState.playerY, '#f7eed8', 1.2);
+
+    } else if (gameState.activeMinigame === 'NIGHTWATCH') {
+        document.getElementById('mg-status').innerText = `COMPLETION: ${Math.round(mgState.completion)}%`;
+
+        ctx.fillStyle = '#121824';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#232f42';
+        ctx.lineWidth = 2;
+        mgState.lanes.forEach(laneY => {
+            ctx.beginPath();
+            ctx.moveTo(0, laneY);
+            ctx.lineTo(canvas.width, laneY);
+            ctx.stroke();
+        });
+
+        ctx.strokeStyle = '#f7eed8';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(mgState.targetX, 40);
+        ctx.lineTo(mgState.targetX, 380);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e8d8b0';
+        ctx.font = '14px "Press Start 2P"';
+        ctx.fillText("TARGET LINE", mgState.targetX - 55, 30);
+
+        mgState.spawnTimer++;
+        if (mgState.spawnTimer > 40 && mgState.completion < 100) {
+            mgState.spawnTimer = 0;
+            let laneIdx = Math.floor(Math.random() * mgState.lanes.length);
+            mgState.notes.push({
+                x: canvas.width + 30,
+                y: mgState.lanes[laneIdx],
+                pitch: mgState.pitches[laneIdx]
+            });
+        }
+
+        for (let i = mgState.notes.length - 1; i >= 0; i--) {
+            let note = mgState.notes[i];
+            note.x -= 3.8;
+
+            ctx.fillStyle = '#b87b4e';
+            ctx.fillRect(note.x - 18, note.y - 18, 36, 36);
+            ctx.strokeStyle = '#2b1d0f';
+            ctx.strokeRect(note.x - 18, note.y - 18, 36, 36);
+
+            if (note.x < mgState.targetX - 50) {
+                mgState.notes.splice(i, 1);
+                mgState.completion = Math.max(0, mgState.completion - 3);
+                let laneIdx = Math.floor(Math.random() * mgState.lanes.length);
+                mgState.notes.push({
+                    x: canvas.width + 80,
+                    y: mgState.lanes[laneIdx],
+                    pitch: mgState.pitches[laneIdx]
+                });
+            }
+        }
+
+    } else if (gameState.activeMinigame === 'RIVER') {
+        let progressPct = Math.max(0, Math.round(((380 - mgState.playerY) / 330) * 100));
+        document.getElementById('mg-status').innerText = `PROGRESS: ${progressPct}%`;
+
+        ctx.fillStyle = '#2c5d88';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#7a8a40';
+        ctx.fillRect(0, 0, canvas.width, 50);
+
+        ctx.fillStyle = '#1a3a5c';
+        mgState.quicksand.forEach(q => {
+            q.x += q.vx;
+            if (q.x - q.r <= 50 || q.x + q.r >= canvas.width - 50) {
+                q.vx *= -1;
+            }
+
+            ctx.beginPath();
+            ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        if (!mgState.trapped) {
+            if (keysPressed['arrowleft'] || keysPressed['a']) mgState.playerX -= mgState.speed;
+            if (keysPressed['arrowright'] || keysPressed['d']) mgState.playerX += mgState.speed;
+            if (keysPressed['arrowup'] || keysPressed['w']) mgState.playerY -= mgState.speed;
+            if (keysPressed['arrowdown'] || keysPressed['s']) mgState.playerY += mgState.speed;
+
+            mgState.playerX = Math.max(20, Math.min(canvas.width - 20, mgState.playerX));
+            mgState.playerY = Math.max(20, Math.min(canvas.height - 20, mgState.playerY));
+
+            mgState.quicksand.forEach(q => {
+                if (Math.hypot(mgState.playerX - q.x, mgState.playerY - q.y) < q.r) {
+                    mgState.trapped = true;
+                    mgState.mashProgress = 0;
+                }
+            });
+
+            if (mgState.playerY <= 50) {
+                endMinigame(true);
+            }
+        } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px "Press Start 2P"';
+            ctx.fillText("TRAPPED IN QUICKSAND! MASH SPACEBAR!", 200, 340);
+
+            ctx.fillStyle = '#2b1d0f';
+            ctx.fillRect(330, 350, 300, 20);
+            ctx.fillStyle = '#5c8043';
+            ctx.fillRect(330, 350, mgState.mashProgress * 3, 20);
+
+            if (mgState.mashProgress >= 100) {
+                mgState.trapped = false;
+                mgState.playerY -= 25;
+            }
+        }
+
+        drawPixelCowboy(mgState.playerX, mgState.playerY, '#f7eed8', 1.0);
+    }
+}
+
+function triggerEndGame() {
+    gameState.mode = 'END';
+    document.getElementById('ledger-screen').classList.remove('hidden');
+
+    const totalWeight = gameState.cattle * gameState.avgWeight;
+    const grossRevenue = Math.round(totalWeight * 0.04);
+
+    document.getElementById('ledger-stats').innerHTML = `
+        Head Delivered: ${gameState.cattle} steers<br>
+        Average Steer Weight: ${Math.round(gameState.avgWeight)} lbs<br>
+        Total Beef Weight: ${totalWeight.toLocaleString()} lbs<br>
+        Market Railhead Price: $0.04 / lb
+    `;
+    document.getElementById('ledger-financials').innerText = `GROSS REVENUE: $${grossRevenue.toLocaleString()}`;
+}
+
+function startGame() {
+    sound.init();
+    gameState.mode = 'OUTFIT';
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('outfit-screen').classList.remove('hidden');
+    renderKnowledgeGrid();
+}
+
+drawScene();
+</script>
+</body>
+</html>
